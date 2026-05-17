@@ -381,7 +381,7 @@ export const Gallery = () => {
               </button>
             </div>
             <div id="masonry-grid-export" className="bg-[#fffefa] -mx-4 md:mx-0 p-4 rounded-xl">
-              <motion.div layout className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+              <motion.div id="masonry-columns-container" layout className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
             <AnimatePresence>
               {filteredMemories.map((memory) => {
                 const isFav = favorites.includes(memory.id);
