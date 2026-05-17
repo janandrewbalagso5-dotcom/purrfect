@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream-50: #fffefa;
+  --color-cream-100: #fffdd0;
+  --color-cream-200: #fdf5e6;
+  --color-beige-100: #f5f5dc;
+  --color-beige-200: #e8e4c9;
+  --color-pink-100: #fce7f3;
+  --color-pink-200: #fbcfe8;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-handwriting: 'Caveat', cursive;
+}
+
+@layer base {
+  body {
+    @apply bg-[#fffefa] text-stone-800 font-sans antialiased overflow-x-hidden;
+    /* Soft scrapbook texture background */
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+    cursor: url('/cat-paw.svg') 16 16, auto;
+  }
+
+  /* Apply the custom cursor to interactive elements on hover */
+  a, button, [role="button"], input, select, textarea {
+    cursor: url('/cat-paw.svg') 16 16, pointer !important;
+  }
+
+  .theme-gojo {
+    background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('/gojo_cat.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
+  .theme-naruto {
+    background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('/naruto_cat.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
+  .theme-sailor {
+    background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('/sailor_moon_cat.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-stone-900;
+  }
+}
+
+@layer utilities {
+  .scrapbook-shadow {
+    box-shadow: 3px 6px 15px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  }
+  .polaroid {
+    @apply bg-white p-3 md:p-4 pb-12 md:pb-16 rounded-sm relative transition-all duration-300;
+    box-shadow: 3px 6px 15px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  }
+  .polaroid-caption {
+    @apply font-handwriting text-2xl md:text-3xl text-stone-700 absolute bottom-3 md:bottom-4 left-0 w-full text-center;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
