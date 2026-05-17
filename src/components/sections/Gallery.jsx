@@ -201,15 +201,15 @@ export const Gallery = () => {
     const element = document.getElementById(`month-grid-${monthYear}`);
     if (!element) return;
     
-    // Temporarily force desktop layout for mobile exports
+    // Temporarily force desktop layout for mobile exports using inline styles
     const originalWidth = element.style.width;
     const gridContainer = element.querySelector('.grid');
-    const originalGridClasses = gridContainer ? gridContainer.className : '';
+    const originalGap = gridContainer ? gridContainer.style.gap : '';
     
     if (gridContainer) {
       element.style.width = '1200px';
-      // Replace mobile gap with desktop gap
-      gridContainer.className = originalGridClasses.replace('gap-1 md:gap-4', 'gap-4');
+      // Force 16px gap (Tailwind gap-4 equivalent)
+      gridContainer.style.gap = '16px';
     }
 
     // Add just the month name to the top of the image so people know what month it is when uploaded
@@ -217,6 +217,9 @@ export const Gallery = () => {
     titleDiv.className = "text-center mb-6 pb-4 border-b border-stone-200/50";
     titleDiv.innerHTML = `<h2 style="font-family: 'Caveat', cursive; font-size: 3.5rem; color: #292524; margin: 0;">${monthYear}</h2>`;
     element.insertBefore(titleDiv, element.firstChild);
+    
+    // Wait a brief moment for styles to apply before capturing
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     try {
       const dataUrl = await htmlToImage.toPng(element, {
@@ -240,7 +243,7 @@ export const Gallery = () => {
       }
       if (gridContainer) {
         element.style.width = originalWidth;
-        gridContainer.className = originalGridClasses;
+        gridContainer.style.gap = originalGap;
       }
     }
   };
@@ -250,14 +253,17 @@ export const Gallery = () => {
     const columnsContainer = document.getElementById('masonry-columns-container');
     if (!element) return;
     
-    // Temporarily force desktop layout for mobile exports
+    // Temporarily force desktop layout using inline styles (immune to Tailwind purging)
     const originalWidth = element.style.width;
-    const originalClasses = columnsContainer ? columnsContainer.className : '';
+    const originalColumnCount = columnsContainer ? columnsContainer.style.columnCount : '';
     
     if (columnsContainer) {
       element.style.width = '1200px';
-      columnsContainer.className = originalClasses.replace('columns-1 sm:columns-2 lg:columns-3', 'columns-3');
+      columnsContainer.style.columnCount = '3';
     }
+
+    // Wait a brief moment for browser to recalculate layout
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       const dataUrl = await htmlToImage.toPng(element, {
@@ -279,7 +285,7 @@ export const Gallery = () => {
     } finally {
       if (columnsContainer) {
         element.style.width = originalWidth;
-        columnsContainer.className = originalClasses;
+        columnsContainer.style.columnCount = originalColumnCount;
       }
     }
   };
