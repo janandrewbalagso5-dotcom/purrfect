@@ -201,6 +201,17 @@ export const Gallery = () => {
     const element = document.getElementById(`month-grid-${monthYear}`);
     if (!element) return;
     
+    // Temporarily force desktop layout for mobile exports
+    const originalWidth = element.style.width;
+    const gridContainer = element.querySelector('.grid');
+    const originalGridClasses = gridContainer ? gridContainer.className : '';
+    
+    if (gridContainer) {
+      element.style.width = '1200px';
+      // Replace mobile gap with desktop gap
+      gridContainer.className = originalGridClasses.replace('gap-1 md:gap-4', 'gap-4');
+    }
+
     // Add just the month name to the top of the image so people know what month it is when uploaded
     const titleDiv = document.createElement('div');
     titleDiv.className = "text-center mb-6 pb-4 border-b border-stone-200/50";
@@ -212,6 +223,9 @@ export const Gallery = () => {
         backgroundColor: '#fffefa', // Match cream background
         pixelRatio: 2, // High resolution for Instagram
         skipFonts: true, // Prevents cross-origin cssRules error
+        style: {
+          width: '1200px',
+        }
       });
       
       const link = document.createElement('a');
@@ -224,20 +238,35 @@ export const Gallery = () => {
       if (element.contains(titleDiv)) {
         element.removeChild(titleDiv);
       }
+      if (gridContainer) {
+        element.style.width = originalWidth;
+        gridContainer.className = originalGridClasses;
+      }
     }
   };
 
   const exportScrapbookToImage = async () => {
     const element = document.getElementById('masonry-grid-export');
+    const columnsContainer = document.getElementById('masonry-columns-container');
     if (!element) return;
     
+    // Temporarily force desktop layout for mobile exports
+    const originalWidth = element.style.width;
+    const originalClasses = columnsContainer ? columnsContainer.className : '';
+    
+    if (columnsContainer) {
+      element.style.width = '1200px';
+      columnsContainer.className = originalClasses.replace('columns-1 sm:columns-2 lg:columns-3', 'columns-3');
+    }
+
     try {
       const dataUrl = await htmlToImage.toPng(element, {
         backgroundColor: '#fffefa', 
         pixelRatio: 2, 
         skipFonts: true, // Prevents cross-origin cssRules error
         style: {
-          padding: '40px'
+          padding: '40px',
+          width: '1200px',
         }
       });
       
@@ -247,6 +276,11 @@ export const Gallery = () => {
       link.click();
     } catch (error) {
       console.error("Failed to export scrapbook", error);
+    } finally {
+      if (columnsContainer) {
+        element.style.width = originalWidth;
+        columnsContainer.className = originalClasses;
+      }
     }
   };
 
