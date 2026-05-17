@@ -22,13 +22,34 @@ export const Timeline = () => {
   const handleAdd = () => {
     setEditingEvent({
       id: `event-${Date.now()}`,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      date: new Date().toISOString().split('T')[0],
       title: '',
       description: '',
       icon: 'Star',
       photo: ''
     });
     setShowModal(true);
+  };
+
+  const formatDisplayDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
   };
 
   const handleEdit = (event) => {
@@ -118,7 +139,7 @@ export const Timeline = () => {
                     <Icon size={24} />
                   </div>
                   <div>
-                    <span className="text-sm font-bold text-orange-500 uppercase tracking-widest">{event.date}</span>
+                    <span className="text-sm font-bold text-orange-500 uppercase tracking-widest">{formatDisplayDate(event.date)}</span>
                     <h3 className="text-xl font-bold text-stone-800">{event.title}</h3>
                   </div>
                 </div>
@@ -177,10 +198,9 @@ export const Timeline = () => {
                 <div>
                   <label className="block text-sm font-semibold text-stone-700 mb-1">Date</label>
                   <input 
-                    type="text" 
-                    value={editingEvent.date}
+                    type="date" 
+                    value={formatDateForInput(editingEvent.date)}
                     onChange={e => setEditingEvent({...editingEvent, date: e.target.value})}
-                    placeholder="e.g., Oct 2023"
                     className="w-full px-4 py-2 rounded-lg border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-300"
                   />
                 </div>
