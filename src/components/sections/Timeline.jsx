@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { timelineEvents as defaultEvents } from '../../data';
 import * as Icons from 'lucide-react';
+import { imageFileToDataUrl } from '../../utils/image';
+import { loadJSON, saveJSON } from '../../utils/storage';
 
 const AVAILABLE_ICONS = ['Home', 'Heart', 'Award', 'Camera', 'Star', 'Gift', 'MapPin', 'Music', 'Smile', 'Calendar', 'Cat'];
 
 export const Timeline = () => {
   const [events, setEvents] = useState(() => {
-    const saved = localStorage.getItem('purrfect-timeline');
-    return saved ? JSON.parse(saved) : defaultEvents;
+    return loadJSON('purrfect-timeline', defaultEvents);
   });
 
   const [editingEvent, setEditingEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [eventToDelete, setEventToDelete] = useState(null);
+  const [storageError, setStorageError] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('purrfect-timeline', JSON.stringify(events));
+    saveJSON('purrfect-timeline', events);
   }, [events]);
 
   const handleAdd = () => {
@@ -36,7 +38,7 @@ export const Timeline = () => {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
       return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    } catch (e) {
+    } catch {
       return dateString;
     }
   };
@@ -47,7 +49,7 @@ export const Timeline = () => {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
       return date.toISOString().split('T')[0];
-    } catch (e) {
+    } catch {
       return '';
     }
   };
@@ -59,11 +61,21 @@ export const Timeline = () => {
 
   const handleSave = () => {
     const isNew = !events.find(e => e.id === editingEvent.id);
+    const nextEvents = isNew
+      ? [editingEvent, ...events]
+      : events.map(e => e.id === editingEvent.id ? editingEvent : e);
+
+    if (!saveJSON('purrfect-timeline', nextEvents)) {
+      setStorageError('Your phone is out of browser storage for photos. Try removing an older timeline photo, then save again.');
+      return;
+    }
+
     if (isNew) {
       setEvents([editingEvent, ...events]);
     } else {
       setEvents(events.map(e => e.id === editingEvent.id ? editingEvent : e));
     }
+    setStorageError('');
     setShowModal(false);
     setEditingEvent(null);
   };
@@ -77,14 +89,17 @@ export const Timeline = () => {
     setEventToDelete(null);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingEvent({ ...editingEvent, photo: reader.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const photo = await imageFileToDataUrl(file, 1400, 0.8);
+        setStorageError('');
+        setEditingEvent({ ...editingEvent, photo });
+      } catch (error) {
+        console.error('Failed to prepare image', error);
+        setStorageError('That image could not be loaded. Please try a different photo.');
+      }
     }
     e.target.value = null;
   };
@@ -185,6 +200,12 @@ export const Timeline = () => {
               </div>
               
               <div className="p-6 overflow-y-auto max-h-[70vh] bg-white space-y-6">
+                {storageError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                    {storageError}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-semibold text-stone-700 mb-1">Title</label>
                   <input 

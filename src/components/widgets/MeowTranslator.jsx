@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Zap, Eye, MousePointerClick, Volume2 } from 'lucide-react';
+import { MessageCircle, Zap, Eye, Volume2, Heart } from 'lucide-react';
 import { MagneticButton } from '../ui/MagneticButton';
 
 const TRANSLATIONS = {
@@ -55,11 +55,7 @@ export const MeowTranslator = () => {
                   onClick={() => translate(action)}
                   className="flex items-center gap-2 px-6 py-3 bg-stone-100 hover:bg-orange-100 hover:text-orange-700 text-stone-700 rounded-full font-medium transition-colors"
                 >
-                  {action === 'Meow' && <Volume2 size={18} />}
-                  {action === 'Stare' && <Eye size={18} />}
-                  {action === 'Knock object' && <MousePointerClick size={18} />}
-                  {action === 'Purr' && <MessageCircle size={18} />}
-                  {action === 'Slow Blink' && <Eye size={18} className="opacity-50" />}
+                  {getIcon(action)}
                   {action}
                 </button>
               </MagneticButton>

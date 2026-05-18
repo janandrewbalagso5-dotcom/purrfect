@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cats as defaultCats } from '../../data';
 import { SpotlightCard } from '../ui/SpotlightCard';
 import { Edit2, Plus, X, Upload } from 'lucide-react';
+import { imageFileToDataUrl } from '../../utils/image';
+import { loadJSON, saveJSON } from '../../utils/storage';
 
 export const CatProfiles = () => {
   const [cats, setCats] = useState(() => {
-    const saved = localStorage.getItem('purrfect-cats');
-    return saved ? JSON.parse(saved) : defaultCats;
+    return loadJSON('purrfect-cats', defaultCats);
   });
 
   const [editingCat, setEditingCat] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [storageError, setStorageError] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('purrfect-cats', JSON.stringify(cats));
+    saveJSON('purrfect-cats', cats);
   }, [cats]);
 
   const handleEdit = (cat) => {
@@ -39,23 +41,36 @@ export const CatProfiles = () => {
 
   const handleSave = () => {
     const isNew = !cats.find(c => c.id === editingCat.id);
+    const nextCats = isNew
+      ? [...cats, editingCat]
+      : cats.map(c => c.id === editingCat.id ? editingCat : c);
+
+    if (!saveJSON('purrfect-cats', nextCats)) {
+      setStorageError('Your phone is out of browser storage for photos. Try using a smaller avatar or removing an older uploaded photo.');
+      return;
+    }
+
     if (isNew) {
       setCats([...cats, editingCat]);
     } else {
       setCats(cats.map(c => c.id === editingCat.id ? editingCat : c));
     }
+    setStorageError('');
     setShowModal(false);
     setEditingCat(null);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditingCat({ ...editingCat, avatar: reader.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const avatar = await imageFileToDataUrl(file, 800, 0.82);
+        setStorageError('');
+        setEditingCat({ ...editingCat, avatar });
+      } catch (error) {
+        console.error('Failed to prepare image', error);
+        setStorageError('That image could not be loaded. Please try a different photo.');
+      }
     }
     e.target.value = null;
   };
@@ -176,6 +191,11 @@ export const CatProfiles = () => {
               </div>
               
               <div className="p-6 overflow-y-auto max-h-[70vh] bg-white space-y-6">
+                {storageError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                    {storageError}
+                  </div>
+                )}
                 
                 <div className="flex flex-col items-center">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-orange-100 mb-4 bg-stone-100 relative group">

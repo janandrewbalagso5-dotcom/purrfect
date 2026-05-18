@@ -1,11 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Heart, X, Download, Upload, Trash2, LayoutDashboard, Grid, Camera, Edit3 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import { memories } from '../../data';
 import { SpotlightCard } from '../ui/SpotlightCard';
+import { imageFileToDataUrl } from '../../utils/image';
+import { loadJSON, saveJSON } from '../../utils/storage';
 
 const MOODS = ['All', 'Sleepy', 'Chaotic', 'Majestic', 'Hungry', 'Mischievous'];
+
+const getMemoryRotation = (id) => {
+  const input = String(id);
+  let hash = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+
+  return (Math.abs(hash) % 600) / 100 - 3;
+};
 
 export const Gallery = () => {
   const [filter, setFilter] = useState('All');
@@ -13,23 +26,22 @@ export const Gallery = () => {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState('masonry');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [storageError, setStorageError] = useState('');
   const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem('purrfect-favorites');
-    return saved ? JSON.parse(saved) : [];
+    return loadJSON('purrfect-favorites', []);
   });
   const [customMoods, setCustomMoods] = useState(() => {
-    const saved = localStorage.getItem('purrfect-custom-moods');
-    return saved ? JSON.parse(saved) : [];
+    return loadJSON('purrfect-custom-moods', []);
   });
 
   const allMoods = [...new Set([...MOODS, ...customMoods])];
 
   useEffect(() => {
-    localStorage.setItem('purrfect-favorites', JSON.stringify(favorites));
+    saveJSON('purrfect-favorites', favorites);
   }, [favorites]);
 
   useEffect(() => {
-    localStorage.setItem('purrfect-custom-moods', JSON.stringify(customMoods));
+    saveJSON('purrfect-custom-moods', customMoods);
   }, [customMoods]);
 
   const toggleFavorite = (id, e) => {
@@ -40,8 +52,7 @@ export const Gallery = () => {
   };
 
   const [customMemories, setCustomMemories] = useState(() => {
-    const saved = localStorage.getItem('purrfect-custom-memories');
-    return saved ? JSON.parse(saved) : [];
+    return loadJSON('purrfect-custom-memories', []);
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadData, setUploadData] = useState({ photo: '', caption: '', story: '', tags: '', mood: 'All' });
@@ -50,27 +61,25 @@ export const Gallery = () => {
   const [newMoodInput, setNewMoodInput] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('purrfect-custom-memories', JSON.stringify(customMemories));
+    saveJSON('purrfect-custom-memories', customMemories);
   }, [customMemories]);
 
   const [deletedMemories, setDeletedMemories] = useState(() => {
-    const saved = localStorage.getItem('purrfect-deleted-memories');
-    return saved ? JSON.parse(saved) : [];
+    return loadJSON('purrfect-deleted-memories', []);
   });
 
   const [editedMemories, setEditedMemories] = useState(() => {
-    const saved = localStorage.getItem('purrfect-edited-memories');
-    return saved ? JSON.parse(saved) : {};
+    return loadJSON('purrfect-edited-memories', {});
   });
 
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('purrfect-deleted-memories', JSON.stringify(deletedMemories));
+    saveJSON('purrfect-deleted-memories', deletedMemories);
   }, [deletedMemories]);
 
   useEffect(() => {
-    localStorage.setItem('purrfect-edited-memories', JSON.stringify(editedMemories));
+    saveJSON('purrfect-edited-memories', editedMemories);
   }, [editedMemories]);
 
   const confirmDeleteMemory = (id) => {
@@ -89,15 +98,18 @@ export const Gallery = () => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUploadData({ ...uploadData, photo: reader.result, date: new Date().toISOString().split('T')[0] });
+      try {
+        const photo = await imageFileToDataUrl(file);
+        setStorageError('');
+        setUploadData({ ...uploadData, photo, date: new Date().toISOString().split('T')[0] });
         setShowUploadModal(true);
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Failed to prepare image', error);
+        setStorageError('That image could not be loaded. Please try a different photo.');
+      }
     }
     e.target.value = null; // reset
   };
@@ -115,9 +127,19 @@ export const Gallery = () => {
 
     if (editingId) {
       if (String(editingId).startsWith('custom-')) {
-        setCustomMemories(customMemories.map(m => m.id === editingId ? { ...m, ...memoryData } : m));
+        const nextMemories = customMemories.map(m => m.id === editingId ? { ...m, ...memoryData } : m);
+        if (!saveJSON('purrfect-custom-memories', nextMemories)) {
+          setStorageError('Your phone is out of browser storage for photos. Try deleting an older custom memory, then save again.');
+          return;
+        }
+        setCustomMemories(nextMemories);
       } else {
-        setEditedMemories({ ...editedMemories, [editingId]: memoryData });
+        const nextEditedMemories = { ...editedMemories, [editingId]: memoryData };
+        if (!saveJSON('purrfect-edited-memories', nextEditedMemories)) {
+          setStorageError('Your phone is out of browser storage for photos. Try deleting an older custom memory, then save again.');
+          return;
+        }
+        setEditedMemories(nextEditedMemories);
       }
       setSelectedPhoto({ id: editingId, catId: selectedPhoto?.catId || 'custom', ...memoryData });
     } else {
@@ -126,9 +148,15 @@ export const Gallery = () => {
         catId: 'custom',
         ...memoryData
       };
-      setCustomMemories([newMemory, ...customMemories]);
+      const nextMemories = [newMemory, ...customMemories];
+      if (!saveJSON('purrfect-custom-memories', nextMemories)) {
+        setStorageError('Your phone is out of browser storage for photos. Try deleting an older custom memory, then save again.');
+        return;
+      }
+      setCustomMemories(nextMemories);
     }
     
+    setStorageError('');
     setShowUploadModal(false);
     setEditingId(null);
     setUploadData({ photo: '', caption: '', story: '', tags: '', mood: 'All', location: '', date: '' });
@@ -385,8 +413,7 @@ export const Gallery = () => {
             <AnimatePresence>
               {filteredMemories.map((memory) => {
                 const isFav = favorites.includes(memory.id);
-                // Slight random rotation for scrapbook feel
-                const rotation = Math.random() * 6 - 3;
+                const rotation = getMemoryRotation(memory.id);
                 
                 return (
                   <motion.div
@@ -614,6 +641,12 @@ export const Gallery = () => {
                 </div>
                 
                 <div className="space-y-4">
+                  {storageError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                      {storageError}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-semibold text-stone-700 mb-1">Caption</label>
                     <input 

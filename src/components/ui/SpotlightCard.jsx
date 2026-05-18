@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 export const SpotlightCard = ({ children, className = '' }) => {
   const divRef = useRef(null);
